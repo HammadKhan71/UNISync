@@ -295,11 +295,10 @@ function renderUpcomingEvents() {
 function renderFeaturedClubs() {
   const el = document.getElementById('featuredClubs');
   el.innerHTML = CLUBS.slice(0, 5).map(cl => `
-    <div class="club-card-h" onclick="openClubDetail(${cl.id})">
+    <div class="club-card-h" onclick="navigateToClubRecruitment('${cl.name.replace(/'/g, "\\'")}')">
       <div class="club-emoji">${cl.emoji}</div>
       <div class="card-name">${cl.name}</div>
       <div class="card-members">${cl.members} members</div>
-      <button class="club-join-mini ${cl.joined ? 'joined' : ''}" onclick="event.stopPropagation();toggleJoin(${cl.id},this)">${cl.joined ? 'Joined' : 'Join'}</button>
     </div>`).join('');
 }
 function renderHomePositions() {
