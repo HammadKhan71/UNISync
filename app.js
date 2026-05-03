@@ -1280,19 +1280,18 @@ function startSSE() {
   // SSE requires auth token — we pass it as a query param since
   // EventSource doesn't support custom headers
   sseSource = new EventSource(`${API_BASE}/api/realtime/stream?token=${token}`);
+
   sseSource.addEventListener('notification', (e) => {
     try {
-      const data = JSON.parse(e.data);
-      if (data.type === 'notification') {
-        NOTIFICATIONS.unshift(data.payload);
-        renderNotifications();
-        playNotifChime();
-        showToast(`${data.payload.title}`);
-        if (document.getElementById('notifPanel')?.classList.contains('open')) renderNotifications();
+      const n = JSON.parse(e.data);
+      // Prepend to local NOTIFICATIONS if not already present
+      if (!NOTIFICATIONS.find(x => x.id === n.id)) {
+        NOTIFICATIONS.unshift({ id: n.id, icon: n.icon, title: n.title, text: n.text, time: 'Just now', unread: true });
       }
-      if (data.type === 'recruitment_update' || data.type === 'join_request_update') {
-        refreshRecruitmentStatus();
-      }
+      renderNotifications();
+      playNotifChime();
+      showToast(`${n.title}`);
+      if (document.getElementById('notifPanel')?.classList.contains('open')) renderNotifications();
     } catch (err) { }
   });
 
@@ -1471,9 +1470,10 @@ function startNotificationPolling() {
   notifPollInterval = setInterval(async () => {
     try {
       const prevUnread = NOTIFICATIONS.filter(n => n.unread).length;
-      const [notifData, memData] = await Promise.all([
+      const [notifData, memData, appData] = await Promise.all([
         apiGet('/api/user/notifications'),
-        apiGet('/api/user/memberships')
+        apiGet('/api/user/memberships'),
+        apiGet('/api/user/applications')
       ]);
       if (Array.isArray(notifData)) {
         NOTIFICATIONS.length = 0;
@@ -1491,6 +1491,15 @@ function startNotificationPolling() {
           }
         });
       }
+      if (Array.isArray(appData)) {
+        appData.forEach(app => {
+          state.applications[app.position_id] = {
+            status: app.status,
+            interview_msg: app.interview_msg || ''
+          };
+        });
+        if (state.page === 'recruitment') renderRecruitment();
+      }
       const newUnread = NOTIFICATIONS.filter(n => n.unread).length;
       updateAllNotifBadges(newUnread);
       if (newUnread > prevUnread) {
@@ -1505,7 +1514,7 @@ function renderCalendar() {
   const el = document.getElementById('calendarContainer');
   const months = [];
   const now = new Date(2026, 2, 18); // March 2026
-  for (let m = 0; m < 6; m++) {
+  for (let m = 0; m < 3; m++) {
     months.push(new Date(now.getFullYear(), now.getMonth() + m, 1));
   }
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -1587,7 +1596,7 @@ function renderNotifications() {
   updateAllNotifBadges(unread.length);
 }
 function updateAllNotifBadges(count) {
-  const ids = ['notifBadge', 'sidebarNotifBadge', 'mobileNotifBadge', 'notifBadge2', 'mobileHeaderNotifBadge'];
+  const ids = ['notifBadge', 'sidebarNotifBadge', 'mobileNotifBadge', 'notifBadge2'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -1950,21 +1959,25 @@ async function saveProfile() {
 
 // ===== MESSAGES (Global Chat Rooms) =====
 function renderMessages() {
-  const el = document.getElementById('messagesContent');
-  if (!el) return;
-  const joinedClubs = CLUBS.filter(c => c.joined);
-  
-  // Update Chats badge count
-  const chatBadge = document.getElementById('nav-messages-badge');
-  if (chatBadge) {
-    chatBadge.textContent = joinedClubs.length || '';
-    chatBadge.style.display = joinedClubs.length ? 'flex' : 'none';
+  const container = document.getElementById('messagesContent');
+  if (!container) return;
+  const role = state.profile.role || sessionStorage.getItem('unisync_role') || 'student';
+  let accessibleClubs = CLUBS.filter(c => c.joined);
+  if (role === 'executive') {
+    state.execClubs.forEach(ec => {
+      if (!accessibleClubs.find(c => c.id === ec.id)) {
+        const cl = CLUBS.find(c => c.id === ec.id);
+        if (cl) accessibleClubs.push(cl);
+        else accessibleClubs.push({ id: ec.id, name: ec.name, emoji: ec.emoji || '', chatId: ec.chat_id, members: ec.members || 0 });
+      }
+    });
   }
-
-  if (joinedClubs.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-title">No Chats Yet</div><div class="empty-sub">Join a club to start chatting!</div></div>';
+  if (accessibleClubs.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="40" height="40"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke-width="1.5"/></svg></div><div class="empty-title">No club chats yet</div><div class="empty-sub">Join clubs to access their chat rooms</div></div>';
     return;
   }
+  container.innerHTML = '<div class="msg-list-pane" id="msgListPane">' +
+    accessibleClubs.map(cl => {
       const chatId = cl.chatId || ('club_' + cl.id);
       const safeName = (cl.name || '').replace(/'/g, "\'").replace(/"/g, '&quot;');
       const msgs = CHAT_MESSAGES[chatId] || [];

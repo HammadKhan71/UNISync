@@ -94,10 +94,6 @@ body { font-family:var(--font);color:var(--white);overscroll-behavior:none; }
   background:rgba(10,10,15,0.92);backdrop-filter:var(--blur);
   position:sticky;top:0;z-index:40;
 }
-.mobile-only-header { display:none; }
-@media (max-width: 899px) {
-  .mobile-only-header { display:flex; }
-}
 
 /* ===== PAGE CONTENT ===== */
 .page-content { flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 8px); }
@@ -662,9 +658,6 @@ textarea.form-input { resize:none;height:100px; }
   padding:0 12px calc(var(--safe-bottom));
   gap:4px;
 }
-@media (min-width: 900px) {
-  .bottom-nav { display:none; }
-}
 .nav-btn {
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:3px;border:none;background:none;cursor:pointer;color:var(--gray);
@@ -704,6 +697,34 @@ textarea.form-input { resize:none;height:100px; }
 .stars { color:var(--gold);font-size:13px;margin-bottom:4px; }
 .review-author { font-size:13px;font-weight:600;margin-bottom:2px; }
 .review-text { font-size:13px;color:var(--gray);line-height:1.5; }
+
+.floating-notif-btn {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 150;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(20, 20, 30, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
+  transition: all .25s cubic-bezier(.32,.72,0,1);
+}
+.floating-notif-btn:active { transform: scale(0.92); background: rgba(30, 30, 45, 0.95); }
+.floating-notif-btn svg { filter: drop-shadow(0 0 4px rgba(201,162,39,0.3)); }
+
+/* Hide floating btn on desktop */
+@media (min-width: 900px) {
+  .floating-notif-btn { display: none !important; }
+}
 
 /* ===== RESPONSIVENESS ===== */
 @media (min-width: 500px) and (max-width: 899px) {
