@@ -10,6 +10,11 @@ const API_BASE = (window.location.protocol === 'file:' || window.location.hostna
   ? 'http://localhost:3001'
   : window.location.origin;
 
+// ===== SUPABASE CLIENT (for Realtime) =====
+const SUPABASE_URL = 'https://txlilhginmtbuorddnuz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4bGlsaGdpbm10YnVvcmRkbnV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NzcwMzUsImV4cCI6MjA5MjE1MzAzNX0.7rpBSI0I-NxajIXA_VDwZSMHOJlC6UCu-6GG1JE66SQ';
+const supabaseClient = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
 async function apiGet(path) {
   const token = sessionStorage.getItem('unisync_token');
   const res = await fetch(`${API_BASE}${path}`, {
@@ -1159,6 +1164,49 @@ function closeQR() { document.getElementById('qrModal').classList.remove('open')
 
 
 // ===== CHAT =====
+function setupChatRealtime(chatId) {
+  if (!supabaseClient) return;
+  // Cleanup old sub if exists
+  if (state._chatSub) {
+    supabaseClient.removeChannel(state._chatSub);
+  }
+
+  state._chatSub = supabaseClient
+    .channel('chat_' + chatId)
+    .on('postgres_changes', { 
+      event: 'INSERT', 
+      schema: 'public', 
+      table: 'chat_messages', 
+      filter: 'club_id=eq.' + chatId 
+    }, (payload) => {
+      const msg = payload.new;
+      const user = JSON.parse(sessionStorage.getItem('unisync_user') || '{}');
+      const myName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim();
+      
+      // Skip if already rendered (optimistic UI)
+      if (CHAT_MESSAGES[chatId] && CHAT_MESSAGES[chatId].find(x => x.id === msg.id)) return;
+
+      const newMsg = {
+        id: msg.id,
+        sender: msg.sender,
+        text: msg.text,
+        time: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        mine: msg.sender.trim() === myName,
+        avatarUrl: msg.avatar_url || ''
+      };
+      
+      if (!CHAT_MESSAGES[chatId]) CHAT_MESSAGES[chatId] = [];
+      CHAT_MESSAGES[chatId].push(newMsg);
+      localStorage.setItem('chat_cache_' + chatId, JSON.stringify(CHAT_MESSAGES[chatId]));
+      
+      if (state.chatOpen === chatId) {
+        renderChatMessages(chatId);
+        playNotifChime();
+      }
+    })
+    .subscribe();
+}
+
 async function openChat(chatId, name, members) {
   state.chatOpen = chatId;
   document.getElementById('chatModalTitle').textContent = name;
@@ -1168,13 +1216,19 @@ async function openChat(chatId, name, members) {
   const modal = document.getElementById('chatModal');
   modal.classList.add('open');
   
-  // 2. Render cached messages immediately if they exist
-  renderChatMessages(chatId);
+  // 2. Load from LocalStorage Cache first for 0ms loading
+  const cached = localStorage.getItem('chat_cache_' + chatId);
+  if (cached) {
+    CHAT_MESSAGES[chatId] = JSON.parse(cached);
+    renderChatMessages(chatId);
+  } else {
+    renderChatMessages(chatId);
+  }
   
-  // 3. Start background polling/realtime
-  startChatPolling(chatId);
+  // 3. Setup REALTIME Subscription (Ultra-fast receiving)
+  setupChatRealtime(chatId);
 
-  // 4. Fetch latest from API without blocking the UI
+  // 4. Background Sync latest from API
   try {
     const user = JSON.parse(sessionStorage.getItem('unisync_user') || '{}');
     const myName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim();
@@ -1183,16 +1237,18 @@ async function openChat(chatId, name, members) {
     const msgs = await res.json();
     if (Array.isArray(msgs)) {
       CHAT_MESSAGES[chatId] = msgs.map(m => ({
+        id: m.id,
         sender: m.sender,
         text: m.text,
         time: m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
         mine: m.sender.trim() === myName,
         avatarUrl: m.avatar_url || '',
       }));
-      // Re-render once data arrives
+      // Persist to cache
+      localStorage.setItem('chat_cache_' + chatId, JSON.stringify(CHAT_MESSAGES[chatId]));
       renderChatMessages(chatId);
     }
-  } catch (e) { console.error('Chat load error:', e); }
+  } catch (e) { console.error('Chat sync error:', e); }
 }
 // Alias for backwards compatibility
 function openChatModal(clubId, name) {
@@ -1201,7 +1257,10 @@ function openChatModal(clubId, name) {
 }
 function closeChatModal() {
   document.getElementById('chatModal').classList.remove('open');
-  if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
+  if (state._chatSub) {
+    supabaseClient.removeChannel(state._chatSub);
+    state._chatSub = null;
+  }
   state.chatOpen = null;
 }
 function renderChatMessages(chatId) {
@@ -1225,49 +1284,22 @@ async function sendChatMsg() {
   const text = input.value.trim();
   if (!text || !state.chatOpen) return;
   const now = new Date();
-  const time = now.getHours() + ':' + (String(now.getMinutes()).padStart(2, '0'));
+  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   // Optimistic UI update
   if (!CHAT_MESSAGES[state.chatOpen]) CHAT_MESSAGES[state.chatOpen] = [];
   const user = JSON.parse(sessionStorage.getItem('unisync_user') || '{}');
   const myName = ((user.firstName || 'You') + (user.lastName ? ' ' + user.lastName : '')).trim();
   const myAvatar = state.profile.avatarUrl || '';
-  CHAT_MESSAGES[state.chatOpen].push({ sender: myName, text, time, mine: true, avatarUrl: myAvatar });
+  
+  const tempId = 'temp_' + Date.now();
+  CHAT_MESSAGES[state.chatOpen].push({ id: tempId, sender: myName, text, time, mine: true, avatarUrl: myAvatar });
   input.value = '';
   renderChatMessages(state.chatOpen);
+  
   // Persist to API
   try {
     await apiPost(`/api/chat/${state.chatOpen}`, { text });
-  } catch (e) { /* optimistic already shown */ }
-}
-
-// Real-time chat polling (every 4 seconds, only when modal is open)
-let chatPollInterval = null;
-let _lastChatMsgId = null;
-async function startChatPolling(chatId) {
-  if (chatPollInterval) clearInterval(chatPollInterval);
-  _lastChatMsgId = null;
-  chatPollInterval = setInterval(async () => {
-    if (!state.chatOpen || !document.getElementById('chatModal')?.classList.contains('open')) return;
-    try {
-      const res = await fetch(`${API_BASE}/api/chat/${chatId}`);
-      if (!res.ok) return;
-      const msgs = await res.json();
-      if (!Array.isArray(msgs) || msgs.length === 0) return;
-      const latestId = msgs[msgs.length - 1]?.id;
-      if (latestId === _lastChatMsgId) return; // no new messages
-      _lastChatMsgId = latestId;
-      const user = JSON.parse(sessionStorage.getItem('unisync_user') || '{}');
-      const myName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim();
-      CHAT_MESSAGES[chatId] = msgs.map(m => ({
-        sender: m.sender,
-        text: m.text,
-        time: m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-        mine: m.sender.trim() === myName,
-        avatarUrl: m.avatar_url || '',
-      }));
-      renderChatMessages(chatId);
-    } catch (e) { }
-  }, 1500);
+  } catch (e) { console.error('Failed to send msg', e); }
 }
 
 // ── Real-time SSE connection ──────────────────────────────────────────────
