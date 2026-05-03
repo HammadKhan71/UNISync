@@ -1150,7 +1150,7 @@ function openQRModal(eventId) {
         <div class="ticket-meta-item"><div class="ticket-meta-label">Venue</div><div class="ticket-meta-val">${ev.location.split(',')[0]}</div></div>
       </div>
       <hr class="ticket-divider"/>
-      <div class="ticket-id">${ticketId}</div>
+    <div class="ticket-id">${ticketId}</div>
     </div>
     <button class="btn-outline" onclick="showToast('Ticket shared!')">Share Ticket</button>`;
   document.getElementById('qrModal').classList.add('open');
@@ -1163,10 +1163,22 @@ async function openChat(chatId, name, members) {
   state.chatOpen = chatId;
   document.getElementById('chatModalTitle').textContent = name;
   document.getElementById('chatMemberCount').textContent = members + ' members';
-  // Load initial messages from API
+  
+  // 1. Open modal INSTANTLY
+  const modal = document.getElementById('chatModal');
+  modal.classList.add('open');
+  
+  // 2. Render cached messages immediately if they exist
+  renderChatMessages(chatId);
+  
+  // 3. Start background polling/realtime
+  startChatPolling(chatId);
+
+  // 4. Fetch latest from API without blocking the UI
   try {
     const user = JSON.parse(sessionStorage.getItem('unisync_user') || '{}');
     const myName = ((user.firstName || '') + ' ' + (user.lastName || '')).trim();
+    
     const res = await fetch(`${API_BASE}/api/chat/${chatId}`);
     const msgs = await res.json();
     if (Array.isArray(msgs)) {
@@ -1177,11 +1189,10 @@ async function openChat(chatId, name, members) {
         mine: m.sender.trim() === myName,
         avatarUrl: m.avatar_url || '',
       }));
+      // Re-render once data arrives
+      renderChatMessages(chatId);
     }
-  } catch (e) { }
-  renderChatMessages(chatId);
-  document.getElementById('chatModal').classList.add('open');
-  startChatPolling(chatId);
+  } catch (e) { console.error('Chat load error:', e); }
 }
 // Alias for backwards compatibility
 function openChatModal(clubId, name) {
