@@ -47,15 +47,17 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'An account with this email already exists' });
     }
 
-    // Store password as plaintext
-    const plaintextPassword = password;
+    // Hash password
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     // Insert user
     const { data: newUser, error } = await supabase
       .from('users')
       .insert({
         email:      email.toLowerCase(),
-        password:   plaintextPassword,
+        password:   hashedPassword,
         role:       role || 'student',
         first_name: firstName,
         last_name:  lastName,
@@ -121,8 +123,15 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'No account found with this email' });
     }
 
-    // Compare password (plaintext)
-    const valid = (password === user.password);
+    // Compare password (handle both plaintext and bcrypt hashes)
+    let valid = false;
+    if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+      const bcrypt = require('bcryptjs');
+      valid = await bcrypt.compare(password, user.password);
+    } else {
+      valid = (password === user.password);
+    }
+    
     if (!valid) {
       return res.status(401).json({ error: 'Incorrect password' });
     }
@@ -175,12 +184,26 @@ router.put('/change-password', authMiddleware, async (req, res) => {
       .eq('id', req.user.id)
       .single();
     if (error || !user) return res.status(404).json({ error: 'User not found' });
-    if (user.password !== currentPassword) {
+    // Verify current password (support both plaintext and bcrypt)
+    let valid = false;
+    if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+      const bcrypt = require('bcryptjs');
+      valid = await bcrypt.compare(currentPassword, user.password);
+    } else {
+      valid = (currentPassword === user.password);
+    }
+    
+    if (!valid) {
       return res.status(401).json({ error: 'Current password is incorrect' });
     }
+
+    // Hash new password
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
     const { error: updErr } = await supabase
       .from('users')
-      .update({ password: newPassword })
+      .update({ password: hashedNewPassword })
       .eq('id', req.user.id);
     if (updErr) throw updErr;
     return res.json({ success: true, message: 'Password updated successfully' });
