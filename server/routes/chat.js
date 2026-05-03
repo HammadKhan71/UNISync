@@ -13,7 +13,7 @@ router.get('/:clubId', async (req, res) => {
       .select('*, users(avatar_url)')
       .eq('club_id', req.params.clubId)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);
     if (error) throw error;
     // Reverse so oldest is first, flatten avatar_url
     const messages = (data || []).reverse().map(m => ({

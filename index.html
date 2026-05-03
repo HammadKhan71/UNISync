@@ -274,6 +274,18 @@
 
         <!-- HOME -->
         <section id="page-home" class="page active">
+          <div class="page-logo-header mobile-only-header">
+            <div style="display:flex;align-items:center;gap:8px">
+              <img src="logo_shield.png" style="width:24px;height:24px"/>
+              <span style="font-family:var(--font2);font-weight:800;font-size:16px;letter-spacing:-0.5px"><span style="color:white">Uni</span><span style="color:var(--gold)">Sync</span></span>
+            </div>
+            <button class="icon-btn notif-btn" onclick="openPanel('notifPanel')" style="position:relative">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span class="notif-badge" id="mobileHeaderNotifBadge"></span>
+            </button>
+          </div>
           <div class="hero-carousel" id="heroCarousel"></div>
           <div id="homeExecPanel"></div>
           <div class="section-block">
@@ -458,11 +470,12 @@
           <span class="nav-label">Calendar</span>
         </button>
         <button class="nav-btn" id="nav-messages" onclick="navigate('messages')">
-          <div class="nav-icon-wrap">
+          <div class="nav-icon-wrap" style="position:relative">
             <svg viewBox="0 0 24 24" fill="none">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor"
                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
+            <span class="notif-badge" id="nav-messages-badge" style="position:absolute;top:-4px;right:-6px;display:none;"></span>
           </div>
           <span class="nav-label">Chats</span>
         </button>
