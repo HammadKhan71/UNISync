@@ -465,6 +465,15 @@
           </div>
           <span class="nav-label">Saved</span>
         </button>
+        <button class="nav-btn" id="nav-notifications" onclick="openPanel('notifPanel')">
+          <div class="nav-icon-wrap" style="position:relative">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="notif-badge" id="mobileNotifBadge" style="position:absolute;top:-4px;right:-6px;display:none;"></span>
+          </div>
+          <span class="nav-label">Alerts</span>
+        </button>
         <button class="nav-btn" id="nav-profile" onclick="navigate('profile')">
           <div class="nav-icon-wrap">
             <svg viewBox="0 0 24 24" fill="none">

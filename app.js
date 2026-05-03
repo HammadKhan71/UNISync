@@ -1256,7 +1256,7 @@ async function startChatPolling(chatId) {
       }));
       renderChatMessages(chatId);
     } catch (e) { }
-  }, 4000);
+  }, 1500);
 }
 
 // ── Real-time SSE connection ──────────────────────────────────────────────
@@ -1480,10 +1480,7 @@ function startNotificationPolling() {
         });
       }
       const newUnread = NOTIFICATIONS.filter(n => n.unread).length;
-      const badge = document.getElementById('notifBadge');
-      if (badge) { badge.textContent = newUnread || ''; badge.style.display = newUnread ? 'flex' : 'none'; }
-      const sb = document.getElementById('sidebarNotifBadge');
-      if (sb) { sb.textContent = newUnread || ''; sb.style.display = newUnread ? 'flex' : 'none'; }
+      updateAllNotifBadges(newUnread);
       if (newUnread > prevUnread) {
         if (document.getElementById('notifPanel')?.classList.contains('open')) renderNotifications();
       }
@@ -1575,11 +1572,17 @@ function renderNotifications() {
         (read.length ? `<div class="notif-section-label">Earlier</div>${read.map(renderNotifItem).join('')}` : '');
     }
   }
-  const nb = document.getElementById('notifBadge');
-  if (nb) { nb.textContent = unread.length || ''; nb.style.display = unread.length ? 'flex' : 'none'; }
-  // Sync sidebar badge
-  const sb = document.getElementById('sidebarNotifBadge');
-  if (sb) { sb.textContent = unread.length || ''; sb.style.display = unread.length ? 'flex' : 'none'; }
+  updateAllNotifBadges(unread.length);
+}
+function updateAllNotifBadges(count) {
+  const ids = ['notifBadge', 'sidebarNotifBadge', 'mobileNotifBadge', 'notifBadge2'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.textContent = count || '';
+      el.style.display = count ? 'flex' : 'none';
+    }
+  });
 }
 function renderNotifItem(n) {
   return `<div class="notif-item" onclick="handleNotifClick(${n.id})" style="cursor:pointer">
