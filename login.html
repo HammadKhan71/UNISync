@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1"/>
+  <meta name="theme-color" content="#0a0a0f"/>
+  <title>UniSync – Login</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+    :root{
+      --navy:#1a2b5e;--navy2:#243a7a;--gold:#c9a227;--gold2:#e6bb44;
+      --bg:#07080f;--surface:rgba(255,255,255,0.06);--border:rgba(255,255,255,0.1);
+      --white:#fff;--gray:#8899aa;--gray2:#445566;
+      --teal:#2dd4bf;--danger:#e05555;--success:#4caf82;
+      --font:'Inter',sans-serif;--font2:'Outfit',sans-serif;
+      --r:16px;--r2:24px;--r3:99px;
+    }
+    html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--font);color:var(--white);}
+
+    /* ── 3D CANVAS ─────────────────────────── */
+    #bg-canvas{position:fixed;inset:0;z-index:0;}
+
+    /* ── LOGO ──────────────────────────────── */
+    .brand{
+      display:flex;align-items:center;justify-content:center;gap:10px;
+      margin-bottom:18px;flex-shrink:0;
+      width:100%;max-width:400px;
+      transition:max-width .35s ease;
+      animation:fadeDown .8s ease both;
+    }
+    .brand.signup-mode{max-width:560px;}
+    .brand-shield{width:38px;height:44px;filter:drop-shadow(0 4px 16px rgba(201,162,39,.6));}
+    .brand-shield-img{width:52px;height:60px;object-fit:contain;filter:drop-shadow(0 4px 16px rgba(201,162,39,.6));}
+    .brand-name{font-family:var(--font2);font-size:32px;font-weight:800;letter-spacing:-1px;}
+    .brand-name .uni{color:var(--white);}
+    .brand-name .sync{color:var(--gold);}
+
+    /* ── CARD WRAPPER ──────────────────────── */
+    .auth-wrap{
+      position:fixed;inset:0;z-index:10;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:24px 20px;
+      animation:fadeUp .8s .2s ease both;
+    }
+    .auth-card{
+      width:100%;max-width:400px;
+      transition:max-width .35s ease;
+      background:rgba(10,12,22,0.72);
+      backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:var(--r2);padding:32px 28px 36px;
+      box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(201,162,39,.08);
+    }
+
+    /* ── ROLE SELECTOR ─────────────────────── */
+    .role-label{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;text-align:center;}
+    .role-pills{display:flex;gap:6px;background:rgba(255,255,255,0.04);border-radius:var(--r3);padding:4px;margin-bottom:24px;}
+    .role-pill{
+      flex:1;padding:10px 12px;border-radius:var(--r3);border:none;
+      font-size:13px;font-weight:700;cursor:pointer;
+      transition:all .25s ease;background:none;color:var(--gray);
+      display:flex;align-items:center;justify-content:center;gap:6px;
+    }
+    .role-pill.active{
+      background:linear-gradient(135deg,var(--navy),var(--navy2));
+      color:var(--white);
+      box-shadow:0 4px 16px rgba(26,43,94,.5),inset 0 1px 0 rgba(255,255,255,.1);
+    }
+    .role-pill.active.exec{
+      background:linear-gradient(135deg,#7c3aed,#9f6ddc);
+      box-shadow:0 4px 16px rgba(124,58,237,.4);
+    }
+
+    /* ── TABS (Login / Sign Up) ─────────────── */
+    .auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:24px;}
+    .auth-tab{
+      flex:1;padding:10px;text-align:center;
+      font-size:14px;font-weight:700;color:var(--gray);
+      border:none;background:none;cursor:pointer;
+      border-bottom:2px solid transparent;transition:all .2s;
+    }
+    .auth-tab.active{color:var(--white);border-bottom-color:var(--gold);}
+
+    /* ── FORM ──────────────────────────────── */
+    .form-group{margin-bottom:14px;}
+    .form-label{display:block;font-size:11px;font-weight:600;color:var(--gray);letter-spacing:.5px;margin-bottom:6px;text-transform:uppercase;}
+    .form-field{
+      position:relative;display:flex;align-items:center;
+      background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,.1);
+      border-radius:var(--r);transition:border .2s,box-shadow .2s;
+    }
+    .form-field:focus-within{border-color:rgba(201,162,39,.5);box-shadow:0 0 0 3px rgba(201,162,39,.08);}
+    .field-icon{padding:0 12px;flex-shrink:0;opacity:.5;display:flex;align-items:center;}
+    .field-icon svg{width:16px;height:16px;stroke:var(--gray);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+    .form-input{
+      flex:1;padding:13px 14px 13px 0;background:none;border:none;outline:none;
+      color:var(--white);font-size:14px;font-family:var(--font);
+    }
+    .form-input::placeholder{color:var(--gray2);}
+    .form-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+    /* ── FORGOT ─────────────────────────────── */
+    .forgot-row{text-align:right;margin-top:-8px;margin-bottom:14px;}
+    .forgot-link{font-size:12px;color:var(--gold);background:none;border:none;cursor:pointer;font-weight:600;}
+
+    /* ── EXEC BADGE ─────────────────────────── */
+    .exec-info{
+      background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(124,58,237,.05));
+      border:1px solid rgba(124,58,237,.3);border-radius:var(--r);
+      padding:12px 14px;margin-bottom:16px;
+      display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.8);
+    }
+    .exec-info-icon{flex-shrink:0;display:flex;align-items:center;}
+    .exec-info-icon svg{width:20px;height:20px;stroke:rgba(159,109,220,.9);stroke-width:2;fill:none;}
+
+    /* ── SUBMIT ─────────────────────────────── */
+    .btn-login{
+      width:100%;padding:14px;border-radius:var(--r);border:none;cursor:pointer;
+      font-size:14px;font-weight:800;letter-spacing:.3px;
+      transition:all .25s ease;margin-top:6px;position:relative;overflow:hidden;
+    }
+    .btn-login.student-btn{background:linear-gradient(135deg,var(--gold),#b8911e);color:#07080f;}
+    .btn-login.exec-btn{background:linear-gradient(135deg,#7c3aed,#9f6ddc);color:var(--white);}
+    .btn-login:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,.4);}
+    .btn-login:active{transform:scale(0.98);}
+    .btn-shimmer{
+      position:absolute;top:0;left:-100%;width:60%;height:100%;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);
+      animation:shimmer 2.5s ease-in-out infinite;
+    }
+    @keyframes shimmer{0%{left:-100%}100%{left:200%}}
+
+    /* ── DIVIDER ─────────────────────────────── */
+    .or-divider{display:flex;align-items:center;gap:10px;margin:16px 0;}
+    .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+    .or-text{font-size:12px;color:var(--gray);font-weight:600;}
+
+    /* ── SOCIAL BTNS ─────────────────────────── */
+    .social-btns{display:flex;gap:8px;}
+    .social-btn{
+      flex:1;padding:11px;border-radius:var(--r);border:1px solid var(--border);
+      background:var(--surface);color:var(--white);font-size:13px;font-weight:600;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+      transition:all .2s;
+    }
+    .social-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);}
+
+    /* ── FOOTER TEXT ─────────────────────────── */
+    .switch-mode{text-align:center;margin-top:18px;font-size:13px;color:var(--gray);}
+    .switch-link{color:var(--gold);font-weight:700;background:none;border:none;cursor:pointer;}
+
+    /* ── PASSWORD TOGGLE ─────────────────────── */
+    .eye-btn{background:none;border:none;cursor:pointer;padding:0 12px;color:var(--gray);display:flex;align-items:center;}
+    .eye-btn svg{width:18px;height:18px;stroke:var(--gray);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+
+    /* ── TOAST ───────────────────────────────── */
+    .toast{
+      position:fixed;bottom:40px;left:50%;transform:translateX(-50%) translateY(20px);
+      background:rgba(20,22,32,.95);backdrop-filter:blur(12px);border:1px solid var(--border);
+      color:var(--white);padding:12px 22px;border-radius:var(--r3);font-size:13px;font-weight:600;
+      z-index:100;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+    /* ── LOADING OVERLAY ─────────────────────── */
+    .loading-overlay{
+      position:fixed;inset:0;z-index:50;background:var(--bg);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:20px;opacity:0;pointer-events:none;transition:opacity .5s;
+    }
+    .loading-overlay.show{opacity:1;pointer-events:all;}
+    .loading-ring{
+      width:56px;height:56px;border-radius:50%;
+      border:3px solid rgba(255,255,255,.1);border-top-color:var(--gold);
+      animation:spin .8s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-text{font-size:14px;color:var(--gray);font-weight:500;}
+
+    /* ── ANIMATIONS ──────────────────────────── */
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── GLOW BORDER ANIMATION ───────────────── */
+    .auth-card::before{
+      content:'';position:absolute;inset:-1px;border-radius:calc(var(--r2)+1px);
+      background:linear-gradient(135deg,rgba(201,162,39,.2),transparent,rgba(26,43,94,.3));
+      z-index:-1;opacity:.6;
+    }
+    .auth-card{position:relative;}
+
+    /* ── SCROLLABLE FORM ─────────────────────── */
+    .form-scroll{max-height:calc(100vh - 180px);overflow-y:auto;scrollbar-width:none;}
+    .auth-card.signup-mode{max-width:560px;}
+    .form-scroll::-webkit-scrollbar{display:none;}
+
+    /* ── PARTICLE LABEL ──────────────────────── */
+    .floating-labels{
+      position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;
+    }
+    .fl-item{
+      position:absolute;font-size:11px;font-weight:600;color:rgba(201,162,39,.35);
+      letter-spacing:1px;text-transform:uppercase;white-space:nowrap;
+      animation:floatUp linear infinite;
+    }
+    @keyframes floatUp{
+      0%{transform:translateY(100vh) rotate(-15deg);opacity:0}
+      10%{opacity:1}
+      90%{opacity:.4}
+      100%{transform:translateY(-100px) rotate(-15deg);opacity:0}
+    }
+
+    @media(max-width:380px){
+      .auth-card{padding:24px 18px 28px;}
+      .form-row2{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- Floating text labels for atmosphere -->
+<div class="floating-labels" id="floatingLabels"></div>
+
+<!-- Auth Card -->
+<div class="auth-wrap">
+  <div class="brand">
+    <img src="logo_shield.png" alt="UniSync Logo" class="brand-shield-img"/>
+    <div class="brand-name"><span class="uni">Uni</span><span class="sync">Sync</span></div>
+  </div>
+  <div class="auth-card">
+    <div class="form-scroll">
+
+      <!-- Auth Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Login</button>
+        <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="form-login">
+        <div class="form-group">
+          <label class="form-label">Email / Student ID</label>
+          <div class="form-field">
+            <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 4 12 13 22 4"/></svg></span>
+            <input type="email" class="form-input" id="login-email" placeholder="your@nu.edu.pk" autocomplete="email"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="form-field">
+            <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            <input type="password" class="form-input" id="login-pass" placeholder="Enter password" autocomplete="current-password"/>
+            <button class="eye-btn" onclick="togglePass('login-pass',this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div class="forgot-row">
+          <button class="forgot-link" onclick="showToast('Password reset link sent to your email')">Forgot password?</button>
+        </div>
+        <button class="btn-login student-btn" id="loginBtn" onclick="handleLogin()">
+          <div class="btn-shimmer"></div>
+          Login to UniSync →
+        </button>
+        <div class="or-divider"><span class="or-text">OR</span></div>
+        <div class="social-btns">
+          <button class="social-btn" onclick="handleSocialLogin('Google')">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Google
+          </button>
+          <button class="social-btn" onclick="handleSocialLogin('Microsoft')">
+            <svg width="16" height="16" viewBox="0 0 24 24"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="13" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="13" width="10" height="10" fill="#00a4ef"/><rect x="13" y="13" width="10" height="10" fill="#ffb900"/></svg>
+            Microsoft
+          </button>
+        </div>
+      </div>
+
+      <!-- SIGNUP FORM -->
+      <div id="form-signup" style="display:none">
+        <!-- Role Selector (signup only) -->
+        <div class="role-label">Sign up as</div>
+        <div class="role-pills">
+          <button class="role-pill active" id="pill-student" onclick="setRole('student')">Student</button>
+          <button class="role-pill exec" id="pill-exec" onclick="setRole('executive')">Executive</button>
+        </div>
+        <div class="form-row2">
+          <div class="form-group">
+            <label class="form-label">First Name</label>
+            <div class="form-field">
+              <span class="field-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              <input type="text" class="form-input" id="signup-fn" placeholder="Hammad"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name</label>
+            <div class="form-field">
+              <input type="text" class="form-input" id="signup-ln" placeholder="Khan" style="padding-left:14px"/>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Student / Staff ID</label>
+          <div class="form-field">
+            <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="6" y1="10" x2="10" y2="10"/><line x1="6" y1="14" x2="14" y2="14"/></svg></span>
+            <input type="text" class="form-input" id="signup-id" placeholder="L20-4567"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">University Email</label>
+          <div class="form-field">
+            <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 4 12 13 22 4"/></svg></span>
+            <input type="email" class="form-input" id="signup-email" placeholder="your@nu.edu.pk"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <div class="form-field">
+            <span class="field-icon"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.72 3.38 2 2 0 0 1 3.69 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.09 6.09l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+            <input type="tel" class="form-input" id="signup-phone" placeholder="03XX-XXXXXXX"/>
+          </div>
+        </div>
+        <div class="form-row2">
+          <div class="form-group">
+            <label class="form-label">Campus</label>
+            <div class="form-field">
+              <span class="field-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+              <select class="form-input" id="signup-campus" style="appearance:none">
+                <option value="Islamabad">Islamabad</option>
+                <option value="Lahore">Lahore</option>
+                <option value="Karachi">Karachi</option>
+                <option value="Faisalabad">Faisalabad</option>
+                <option value="Peshawar">Peshawar</option>
+                <option value="Chiniot-Faisalabad">Chiniot-Faisalabad</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department</label>
+            <div class="form-field">
+              <span class="field-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+              <input type="text" class="form-input" id="signup-dept" placeholder="CS, EE, BBA..."/>
+            </div>
+          </div>
+        </div>
+        <div class="form-row2">
+          <div class="form-group">
+            <label class="form-label">Program</label>
+            <div class="form-field">
+              <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span>
+              <input type="text" class="form-input" id="signup-program" placeholder="BSCS, MBA..."/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Year / Semester</label>
+            <div class="form-field" style="gap:4px">
+              <input type="text" class="form-input" id="signup-year" placeholder="Year (1-4)" style="width:50%;padding-left:10px"/>
+              <input type="text" class="form-input" id="signup-semester" placeholder="Sem (1-8)" style="width:50%;padding-left:10px"/>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bio <span style="font-weight:400;font-size:11px;color:var(--gray)">(optional)</span></label>
+          <div class="form-field">
+            <textarea class="form-input" id="signup-bio" placeholder="Tell others a little about yourself..." style="min-height:64px;resize:none;padding-top:10px"></textarea>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="form-field">
+            <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            <input type="password" class="form-input" id="signup-pass" placeholder="Min 8 characters"/>
+            <button class="eye-btn" onclick="togglePass('signup-pass',this)"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm Password</label>
+          <div class="form-field">
+            <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            <input type="password" class="form-input" id="signup-pass2" placeholder="Repeat password"/>
+          </div>
+        </div>
+        <button class="btn-login student-btn" id="signupBtn" onclick="handleSignup()">
+          <div class="btn-shimmer"></div>
+          Create Account →
+        </button>
+      </div>
+
+      <div class="switch-mode" id="switchMode">
+        Don't have an account?
+        <button class="switch-link" id="switchLink" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+    </div><!-- /form-scroll -->
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-ring"></div>
+  <div class="loading-text" id="loadingText">Signing you in…</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// THREE.JS — INTERACTIVE 3D BACKGROUND
+// ═══════════════════════════════════════════════════
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x07080f, 1);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.z = 300;
+
+  // ── PARTICLE SYSTEM ───────────────────────────
+  const PARTICLE_COUNT = 140;
+  const positions = [];
+  const velocities = [];
+  const sizes = [];
+  const colors_arr = [];
+
+  const palette = [
+    new THREE.Color(0x1a2b5e), // navy
+    new THREE.Color(0x243a7a), // navy2
+    new THREE.Color(0xc9a227), // gold
+    new THREE.Color(0x2dd4bf), // teal
+    new THREE.Color(0x7c3aed), // purple
+  ];
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const x = (Math.random() - 0.5) * 700;
+    const y = (Math.random() - 0.5) * 500;
+    const z = (Math.random() - 0.5) * 400;
+    positions.push({ x, y, z, ox: x, oy: y, oz: z });
+    velocities.push({
+      x: (Math.random() - 0.5) * 0.3,
+      y: (Math.random() - 0.5) * 0.3,
+      z: (Math.random() - 0.5) * 0.1,
+    });
+    sizes.push(Math.random() * 3 + 1);
+    const c = palette[Math.floor(Math.random() * palette.length)];
+    colors_arr.push(c.r, c.g, c.b);
+  }
+
+  const posArr = new Float32Array(positions.length * 3);
+  const colArr = new Float32Array(colors_arr);
+  const sizeArr = new Float32Array(sizes);
+  positions.forEach((p, i) => { posArr[i*3]=p.x; posArr[i*3+1]=p.y; posArr[i*3+2]=p.z; });
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(colArr, 3));
+  geo.setAttribute('size', new THREE.BufferAttribute(sizeArr, 1));
+
+  const mat = new THREE.ShaderMaterial({
+    vertexShader: `
+      attribute float size;
+      attribute vec3 color;
+      varying vec3 vColor;
+      void main(){
+        vColor = color;
+        vec4 mv = modelViewMatrix * vec4(position,1.0);
+        gl_PointSize = size * (280.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vColor;
+      void main(){
+        float d = length(gl_PointCoord - vec2(.5));
+        if(d > .5) discard;
+        float alpha = 1.0 - smoothstep(0.3, 0.5, d);
+        gl_FragColor = vec4(vColor, alpha * 0.85);
+      }
+    `,
+    transparent: true,
+    vertexColors: true,
+    depthWrite: false,
+  });
+
+  const particles = new THREE.Points(geo, mat);
+  scene.add(particles);
+
+  // ── CONNECTIONS (lines between close particles) ──
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x1a2b5e, transparent: true, opacity: 0.15 });
+  const lineGeo = new THREE.BufferGeometry();
+  const MAX_LINES = 300;
+  const linePosArr = new Float32Array(MAX_LINES * 6);
+  lineGeo.setAttribute('position', new THREE.BufferAttribute(linePosArr, 3));
+  const lines = new THREE.LineSegments(lineGeo, lineMat);
+  scene.add(lines);
+
+  // ── FLOATING GEOMETRIC SHAPES ─────────────────
+  const shapes = [];
+  const shapeGeos = [
+    new THREE.OctahedronGeometry(12),
+    new THREE.TetrahedronGeometry(16),
+    new THREE.IcosahedronGeometry(10),
+    new THREE.TorusGeometry(12, 3, 8, 16),
+    new THREE.OctahedronGeometry(8),
+  ];
+  const shapeMats = [
+    new THREE.MeshBasicMaterial({ color: 0x1a2b5e, wireframe: true, transparent: true, opacity: 0.25 }),
+    new THREE.MeshBasicMaterial({ color: 0xc9a227, wireframe: true, transparent: true, opacity: 0.2 }),
+    new THREE.MeshBasicMaterial({ color: 0x2dd4bf, wireframe: true, transparent: true, opacity: 0.15 }),
+    new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.18 }),
+    new THREE.MeshBasicMaterial({ color: 0xc9a227, wireframe: true, transparent: true, opacity: 0.2 }),
+  ];
+  const shapePositions = [
+    [-180, 100, -60], [200, -80, -100], [-100, -160, -50],
+    [220, 150, -80], [-220, -50, -120],
+  ];
+  shapeGeos.forEach((g, i) => {
+    const mesh = new THREE.Mesh(g, shapeMats[i]);
+    mesh.position.set(...shapePositions[i]);
+    mesh.rotation.set(Math.random()*6, Math.random()*6, Math.random()*6);
+    mesh.userData.rotSpeed = { x: (Math.random()-.5)*.005, y: (Math.random()-.5)*.005, z: (Math.random()-.5)*.003 };
+    mesh.userData.floatOffset = Math.random() * Math.PI * 2;
+    mesh.userData.floatY = mesh.position.y;
+    scene.add(mesh);
+    shapes.push(mesh);
+  });
+
+  // ── MOUSE TRACKING ────────────────────────────
+  let mouse = { x: 0, y: 0 };
+  let targetMouse = { x: 0, y: 0 };
+  document.addEventListener('mousemove', e => {
+    targetMouse.x = (e.clientX / window.innerWidth - 0.5) * 2;
+    targetMouse.y = -(e.clientY / window.innerHeight - 0.5) * 2;
+  });
+  document.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    targetMouse.x = (t.clientX / window.innerWidth - 0.5) * 2;
+    targetMouse.y = -(t.clientY / window.innerHeight - 0.5) * 2;
+  }, { passive: true });
+
+  // ── ANIMATE ───────────────────────────────────
+  let frame = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    frame++;
+
+    // Smooth mouse tracking
+    mouse.x += (targetMouse.x - mouse.x) * 0.04;
+    mouse.y += (targetMouse.y - mouse.y) * 0.04;
+
+    // Camera parallax
+    camera.position.x += (-mouse.x * 30 - camera.position.x) * 0.03;
+    camera.position.y += (mouse.y * 20 - camera.position.y) * 0.03;
+    camera.lookAt(scene.position);
+
+    // Move particles
+    const posAttr = particles.geometry.attributes.position;
+    let lineIdx = 0;
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const p = positions[i];
+      const v = velocities[i];
+      // Mouse repulsion
+      const dx = p.x - mouse.x * 200;
+      const dy = p.y - mouse.y * 150;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 80) { v.x += (dx/dist) * 0.08; v.y += (dy/dist) * 0.08; }
+      // Return to origin
+      v.x += (p.ox - p.x) * 0.002;
+      v.y += (p.oy - p.y) * 0.002;
+      v.x *= 0.97; v.y *= 0.97;
+      p.x += v.x; p.y += v.y;
+      posAttr.array[i*3]   = p.x;
+      posAttr.array[i*3+1] = p.y;
+      posAttr.array[i*3+2] = p.z + Math.sin(frame * 0.01 + i) * 0.5;
+
+      // Connect nearby particles
+      if (lineIdx < MAX_LINES - 1) {
+        for (let j = i+1; j < PARTICLE_COUNT && lineIdx < MAX_LINES-1; j++) {
+          const q = positions[j];
+          const d = Math.sqrt((p.x-q.x)**2 + (p.y-q.y)**2);
+          if (d < 80) {
+            const li = lineIdx * 6;
+            linePosArr[li]   = p.x; linePosArr[li+1] = p.y; linePosArr[li+2] = p.z;
+            linePosArr[li+3] = q.x; linePosArr[li+4] = q.y; linePosArr[li+5] = q.z;
+            lineIdx++;
+          }
+        }
+      }
+    }
+    posAttr.needsUpdate = true;
+    lines.geometry.attributes.position.needsUpdate = true;
+    lines.geometry.setDrawRange(0, lineIdx * 2);
+    lineMat.opacity = 0.08 + Math.abs(mouse.x) * 0.08;
+
+    // Rotate & float shapes
+    const t = frame * 0.01;
+    shapes.forEach((s, i) => {
+      s.rotation.x += s.userData.rotSpeed.x;
+      s.rotation.y += s.userData.rotSpeed.y;
+      s.rotation.z += s.userData.rotSpeed.z;
+      s.position.y = s.userData.floatY + Math.sin(t + s.userData.floatOffset) * 8;
+      s.position.x += mouse.x * 0.3 * (i%2===0?1:-1) * 0.05;
+    });
+
+    // Slow particle rotation
+    particles.rotation.y = mouse.x * 0.05;
+    particles.rotation.x = mouse.y * 0.03;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+// ═══════════════════════════════════════════════════
+// FLOATING LABELS ATMOSPHERE
+// ═══════════════════════════════════════════════════
+const words = ['Hackathon','CS Society','Music Night','Cricket League','Cultural Fest','Join Clubs','Book Now','Startup Pitch','E-Ticket','Campus Life','Announcements','Recruitment','UniSync'];
+const container = document.getElementById('floatingLabels');
+words.forEach((w, i) => {
+  const el = document.createElement('div');
+  el.className = 'fl-item';
+  el.textContent = w;
+  el.style.left = (5 + Math.random() * 85) + '%';
+  el.style.animationDuration = (18 + Math.random() * 20) + 's';
+  el.style.animationDelay = (i * 2.5 + Math.random() * 4) + 's';
+  el.style.fontSize = (10 + Math.random() * 4) + 'px';
+  container.appendChild(el);
+});
+
+// ═══════════════════════════════════════════════════
+// APP LOGIC
+// ═══════════════════════════════════════════════════
+let currentRole = 'student';
+let currentTab = 'login';
+
+function setRole(role) {
+  currentRole = role;
+  document.getElementById('pill-student').classList.toggle('active', role==='student');
+  document.getElementById('pill-exec').classList.toggle('active', role==='executive');
+  // Update signup button gradient
+  const signupBtn = document.getElementById('signupBtn');
+  if (signupBtn) signupBtn.className = 'btn-login ' + (role==='executive' ? 'exec-btn' : 'student-btn');
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-signup').classList.toggle('active', tab==='signup');
+  document.getElementById('form-login').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('form-signup').style.display = tab==='signup' ? 'block' : 'none';
+  document.querySelector('.auth-card').classList.toggle('signup-mode', tab==='signup');
+  document.querySelector('.brand').classList.toggle('signup-mode', tab==='signup');
+  const switchMode = document.getElementById('switchMode');
+  const switchLink = document.getElementById('switchLink');
+  if (tab==='login') {
+    switchMode.innerHTML = "Don't have an account? <button class='switch-link' onclick=\"switchTab('signup')\">Sign Up</button>";
+  } else {
+    switchMode.innerHTML = "Already have an account? <button class='switch-link' onclick=\"switchTab('login')\">Login</button>";
+    setRole(currentRole);
+  }
+}
+
+function togglePass(id, btn) {
+  const input = document.getElementById(id);
+  if (input.type === 'password') { input.type = 'text'; btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'; }
+  else { input.type = 'password'; btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'; }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function showLoading(msg) {
+  document.getElementById('loadingText').textContent = msg || 'Signing you in…';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+// ── API base URL (auto-detects local vs hosted) ────────────────────
+const API_BASE = (window.location.protocol === 'file:' || window.location.hostname === '')
+  ? 'http://localhost:3001'
+  : window.location.origin;
+
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  if (!email) { showToast('Please enter your email'); return; }
+  if (!email.toLowerCase().endsWith('.nu.edu.pk')) { showToast('Only @<campus>.nu.edu.pk emails are allowed'); return; }
+  if (!pass)  { showToast('Please enter your password'); return; }
+
+  showLoading('Logging into UniSync…');
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) { hideLoading(); showToast(data.error || 'Login failed'); return; }
+    sessionStorage.setItem('unisync_token', data.token);
+    sessionStorage.setItem('unisync_role',  data.user.role);
+    sessionStorage.setItem('unisync_email', data.user.email);
+    sessionStorage.setItem('unisync_user',  JSON.stringify(data.user));
+    setTimeout(() => { window.location.href = 'index.html'; }, 800);
+  } catch (err) {
+    hideLoading();
+    showToast('Cannot connect to server. Is it running?');
+  }
+}
+
+async function handleSignup() {
+  const fn       = document.getElementById('signup-fn').value.trim();
+  const ln       = document.getElementById('signup-ln').value.trim();
+  const sid      = document.getElementById('signup-id').value.trim();
+  const email    = document.getElementById('signup-email').value.trim();
+  const phone    = document.getElementById('signup-phone')?.value.trim() || '';
+  const campus   = document.getElementById('signup-campus')?.value || 'Islamabad';
+  const dept     = document.getElementById('signup-dept')?.value.trim() || '';
+  const program  = document.getElementById('signup-program')?.value.trim() || '';
+  const year     = document.getElementById('signup-year')?.value.trim() || '';
+  const semester = document.getElementById('signup-semester')?.value.trim() || '';
+  const bio      = document.getElementById('signup-bio')?.value.trim() || '';
+  const pass     = document.getElementById('signup-pass').value;
+  const pass2    = document.getElementById('signup-pass2').value;
+  const execClub = '';
+  const execRole = '';
+  if (!fn || !ln)  { showToast('Please enter your full name'); return; }
+  if (!email)      { showToast('Please enter your email'); return; }
+  if (!email.endsWith('.nu.edu.pk')) { showToast('Please use your university email (@<campus>.nu.edu.pk)', 'error'); return; }
+  if (pass.length < 8) { showToast('Password must be at least 8 characters'); return; }
+  if (pass !== pass2)  { showToast('Passwords do not match'); return; }
+  showLoading(currentRole === 'executive' ? 'Creating Executive account…' : 'Creating Student account…');
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firstName: fn, lastName: ln, email, password: pass,
+        studentId: sid, role: currentRole, execClub, execRole,
+        phone, campus, department: dept, program, year, semester, bio })
+    });
+    const data = await res.json();
+    if (!res.ok) { hideLoading(); showToast(data.error || 'Registration failed'); return; }
+    sessionStorage.setItem('unisync_token', data.token);
+    sessionStorage.setItem('unisync_role',  data.user.role);
+    sessionStorage.setItem('unisync_email', data.user.email);
+    sessionStorage.setItem('unisync_user',  JSON.stringify(data.user));
+    setTimeout(() => { window.location.href = 'index.html'; }, 800);
+  } catch (err) {
+    hideLoading();
+    showToast('Cannot connect to server. Is it running?');
+  }
+}
+
+function handleSocialLogin(provider) {
+  showToast(`${provider} SSO coming soon! Please use email login.`);
+}
+
+// Allow Enter key to submit
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (currentTab === 'login') handleLogin();
+    else handleSignup();
+  }
+});
+</script>
+</body>
+</html>
