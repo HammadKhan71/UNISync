@@ -414,7 +414,7 @@ function renderClubCardFull(cl) {
       ${isExecOwner
       ? `<button class="btn-join joined" onclick="openExecDashboard(${cl.id})">Manage Club</button>`
       : joinBtn}
-      <button class="chat-join-btn" onclick="openChat('${cl.chatId}','${cl.name}',${cl.members})">Chat</button>
+      ${(cl.joined || isExecOwner) ? `<button class="chat-join-btn" onclick="openChat('${cl.chatId}','${cl.name}',${cl.members})">Chat</button>` : ''}
     </div>
   </div>`;
 }
@@ -651,7 +651,7 @@ function openClubDetail(id) {
       </div>
       <div style="display:flex;gap:8px;margin-bottom:20px">
         ${actionBtn}
-        ${(cl.joined || isExecOwner) ? `<button class="chat-join-btn" onclick="openChat('${cl.chatId}','${cl.name}',${cl.members})">Chat</button>` : `<button class="chat-join-btn" style="opacity:0.5; cursor:not-allowed;" onclick="showToast('You must be an approved member to access the chat.')">Chat</button>`}
+        ${(cl.joined || isExecOwner) ? `<button class="chat-join-btn" onclick="openChat('${cl.chatId}','${cl.name}',${cl.members})">Chat</button>` : ''}
       </div>
       <div class="detail-tabs">
         <button class="detail-tab active" onclick="switchDetailTab('cabout',this)">About</button>
