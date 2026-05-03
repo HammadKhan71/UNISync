@@ -446,6 +446,17 @@
           </div>
           <span class="nav-label">Explore</span>
         </button>
+        <button class="nav-btn" id="nav-calendar" onclick="navigate('calendar')">
+          <div class="nav-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" />
+              <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" />
+            </svg>
+          </div>
+          <span class="nav-label">Calendar</span>
+        </button>
         <button class="nav-btn" id="nav-messages" onclick="navigate('messages')">
           <div class="nav-icon-wrap">
             <svg viewBox="0 0 24 24" fill="none">
@@ -454,25 +465,6 @@
             </svg>
           </div>
           <span class="nav-label">Chats</span>
-        </button>
-        <button class="nav-btn" id="nav-favorites" onclick="navigate('favorites')">
-          <div class="nav-icon-wrap">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path
-                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-          </div>
-          <span class="nav-label">Saved</span>
-        </button>
-        <button class="nav-btn" id="nav-notifications" onclick="openPanel('notifPanel')">
-          <div class="nav-icon-wrap" style="position:relative">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-            <span class="notif-badge" id="mobileNotifBadge" style="position:absolute;top:-4px;right:-6px;display:none;"></span>
-          </div>
-          <span class="nav-label">Alerts</span>
         </button>
         <button class="nav-btn" id="nav-profile" onclick="navigate('profile')">
           <div class="nav-icon-wrap">

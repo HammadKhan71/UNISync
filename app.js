@@ -1470,10 +1470,13 @@ function startNotificationPolling() {
   notifPollInterval = setInterval(async () => {
     try {
       const prevUnread = NOTIFICATIONS.filter(n => n.unread).length;
-      const [notifData, memData] = await Promise.all([
+      const [notifData, memData, appData] = await Promise.all([
         apiGet('/api/user/notifications'),
-        apiGet('/api/user/memberships')
+        apiGet('/api/user/memberships'),
+        apiGet('/api/recruitments/my')
       ]);
+      
+      // Update Notifications
       if (Array.isArray(notifData)) {
         NOTIFICATIONS.length = 0;
         notifData.forEach(n => NOTIFICATIONS.push({
@@ -1481,6 +1484,8 @@ function startNotificationPolling() {
           text: n.text, time: timeAgo(n.created_at), unread: n.unread
         }));
       }
+
+      // Update Memberships
       if (Array.isArray(memData)) {
         memData.forEach(clubId => {
           const cl = CLUBS.find(c => c.id === clubId);
@@ -1490,13 +1495,22 @@ function startNotificationPolling() {
           }
         });
       }
+
+      // Update Recruitment Status (Real-time)
+      if (Array.isArray(appData)) {
+        appData.forEach(app => {
+          state.applications[app.position_id] = app.status;
+        });
+        if (state.page === 'recruitment') renderRecruitment();
+      }
+
       const newUnread = NOTIFICATIONS.filter(n => n.unread).length;
       updateAllNotifBadges(newUnread);
       if (newUnread > prevUnread) {
         if (document.getElementById('notifPanel')?.classList.contains('open')) renderNotifications();
       }
     } catch (e) { }
-  }, 30000);
+  }, 15000); // Poll every 15 seconds for status updates
 }
 
 // ===== CALENDAR =====
@@ -1504,7 +1518,7 @@ function renderCalendar() {
   const el = document.getElementById('calendarContainer');
   const months = [];
   const now = new Date(2026, 2, 18); // March 2026
-  for (let m = 0; m < 3; m++) {
+  for (let m = 0; m < 6; m++) {
     months.push(new Date(now.getFullYear(), now.getMonth() + m, 1));
   }
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -1586,7 +1600,7 @@ function renderNotifications() {
   updateAllNotifBadges(unread.length);
 }
 function updateAllNotifBadges(count) {
-  const ids = ['notifBadge', 'sidebarNotifBadge', 'mobileNotifBadge', 'notifBadge2'];
+  const ids = ['notifBadge', 'sidebarNotifBadge', 'mobileNotifBadge', 'notifBadge2', 'mobileHeaderNotifBadge'];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -1971,6 +1985,7 @@ function renderMessages() {
       const chatId = cl.chatId || ('club_' + cl.id);
       const safeName = (cl.name || '').replace(/'/g, "\'").replace(/"/g, '&quot;');
       const msgs = CHAT_MESSAGES[chatId] || [];
+      const msgCount = msgs.length;
       const last = msgs[msgs.length - 1];
       const lastText = last ? (last.mine ? 'You: ' : last.sender.split(' ')[0] + ': ') + last.text : 'Tap to open chat';
       const initials = (cl.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -1978,9 +1993,16 @@ function renderMessages() {
         ? '<img src="' + cl.photoUrl + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover"/>'
         : '<span style="font-size:16px;font-weight:700;color:var(--gold)">' + initials + '</span>';
       return '<div class="msg-channel-item" onclick="openChat(\'' + chatId + '\',\'' + safeName + '\',' + (cl.members || 0) + ')" id="msgItem-' + chatId + '">' +
-        '<div class="msg-channel-avatar" style="background:linear-gradient(135deg,var(--navy),#2d4a8a)">' + avatarHtml + '</div>' +
-        '<div class="msg-channel-info"><div class="msg-channel-name">' + cl.name + '</div><div class="msg-channel-preview">' + lastText + '</div></div>' +
-        '<div class="msg-channel-meta"><div class="msg-channel-time">' + (last ? last.time || '' : '') + '</div></div></div>';
+        '<div style="width:48px;height:48px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">' + avatarHtml + '</div>' +
+        '<div class="msg-channel-info">' +
+          '<div class="msg-channel-name">' + cl.name + '</div>' +
+          '<div class="msg-channel-preview">' + lastText + '</div>' +
+        '</div>' +
+        '<div class="msg-channel-meta">' +
+          (msgCount > 0 ? '<div class="msg-unread-badge">' + msgCount + '</div>' : '') +
+          '<div class="msg-channel-time" style="margin-top:4px">' + (last ? last.time || '' : '') + '</div>' +
+        '</div>' +
+      '</div>';
     }).join('') +
     '</div><div class="msg-chat-pane" id="msgChatPane"></div>';
 }
