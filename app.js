@@ -1226,7 +1226,7 @@ async function openChat(chatId, name, members) {
   }
   
   // 3. Setup REALTIME Subscription (Ultra-fast receiving)
-  setupChatRealtime(chatId);
+  startChatPolling(chatId);
 
   // 4. Background Sync latest from API
   try {
@@ -2031,7 +2031,6 @@ function renderMessages() {
           '<div class="msg-channel-preview">' + lastText + '</div>' +
         '</div>' +
         '<div class="msg-channel-meta">' +
-          (msgCount > 0 ? '<div class="msg-unread-badge">' + msgCount + '</div>' : '') +
           '<div class="msg-channel-time" style="margin-top:4px">' + (last ? last.time || '' : '') + '</div>' +
         '</div>' +
       '</div>';

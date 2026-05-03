@@ -10,13 +10,16 @@ router.get('/:clubId', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('chat_messages')
-      .select('*')
+      .select('*, users(avatar_url)')
       .eq('club_id', req.params.clubId)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(50);
     if (error) throw error;
-    // Reverse so oldest is first
-    const messages = (data || []).reverse();
+    // Reverse so oldest is first, flatten avatar_url
+    const messages = (data || []).reverse().map(m => ({
+      ...m,
+      avatar_url: m.users?.avatar_url || '',
+    }));
     return res.json(messages);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch messages' });
@@ -30,14 +33,6 @@ router.post('/:clubId', authMiddleware, async (req, res) => {
     if (!text || !text.trim()) {
       return res.status(400).json({ error: 'Message text is required' });
     }
-    
-    // Fetch user's avatar_url to store it with the message (de-normalization for speed)
-    const { data: userData } = await supabase
-      .from('users')
-      .select('avatar_url')
-      .eq('id', req.user.id)
-      .single();
-
     const { data, error } = await supabase
       .from('chat_messages')
       .insert({
@@ -45,7 +40,6 @@ router.post('/:clubId', authMiddleware, async (req, res) => {
         user_id:  req.user.id,
         sender:   `${req.user.firstName} ${req.user.lastName}`,
         text:     text.trim(),
-        avatar_url: userData?.avatar_url || ''
       })
       .select()
       .single();
